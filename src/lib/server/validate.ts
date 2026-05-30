@@ -5,7 +5,7 @@ import {
   type ValidationError,
 } from 'express-validator';
 
-type NextFn = (result?: unknown) => void;
+type NextFn = (_result?: unknown) => void;
 
 const validateMiddleware = (validations: ValidationChain[]) => {
   return async (req: NextApiRequest, res: NextApiResponse, next: NextFn) => {

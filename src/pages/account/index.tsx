@@ -1,6 +1,7 @@
-import { useState } from 'react';
 import { useRouter } from 'next/router';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 import Button from '@/components/Button/index';
 import Card from '@/components/Card/index';
@@ -8,9 +9,18 @@ import Content from '@/components/Content/index';
 import Meta from '@/components/Meta/index';
 import { useInvitations, useWorkspaces } from '@/hooks/data/index';
 import { AccountLayout } from '@/layouts/index';
-import api from '@/lib/common/api';
-import { useWorkspace } from '@/providers/workspace';
-import { useTranslation } from 'react-i18next';
+import apiFetch from '@/lib/common/api';
+import { useWorkspace, type Workspace } from '@/providers/workspace';
+
+type Invitation = {
+  id: string;
+  workspace: { name: string };
+  invitedBy: { name?: string | null; email?: string | null };
+};
+
+type MutationResponse = {
+  errors?: Record<string, { msg: string }>;
+};
 
 const Welcome = () => {
   const router = useRouter();
@@ -21,10 +31,14 @@ const Welcome = () => {
   const { setWorkspace } = useWorkspace();
   const { t } = useTranslation();
   const [isSubmitting, setSubmittingState] = useState(false);
+  const workspaces =
+    (workspacesData?.workspaces as Workspace[] | undefined) ?? [];
+  const invitations =
+    (invitationsData?.invitations as Invitation[] | undefined) ?? [];
 
-  const accept = (memberId) => {
+  const accept = (memberId: string) => {
     setSubmittingState(true);
-    api(`/api/workspace/team/accept`, {
+    apiFetch<MutationResponse>('/api/workspace/team/accept', {
       body: { memberId },
       method: 'PUT',
     }).then((response) => {
@@ -32,7 +46,7 @@ const Welcome = () => {
 
       if (response.errors) {
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
       } else {
         toast.success('Accepted invitation!');
@@ -40,9 +54,9 @@ const Welcome = () => {
     });
   };
 
-  const decline = (memberId) => {
+  const decline = (memberId: string) => {
     setSubmittingState(true);
-    api(`/api/workspace/team/decline`, {
+    apiFetch<MutationResponse>('/api/workspace/team/decline', {
       body: { memberId },
       method: 'PUT',
     }).then((response) => {
@@ -50,7 +64,7 @@ const Welcome = () => {
 
       if (response.errors) {
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
       } else {
         toast.success('Declined invitation!');
@@ -58,7 +72,7 @@ const Welcome = () => {
     });
   };
 
-  const navigate = (workspace) => {
+  const navigate = (workspace: Workspace) => {
     setWorkspace(workspace);
     router.replace(`/account/${workspace.slug}`);
   };
@@ -76,10 +90,12 @@ const Welcome = () => {
           {isFetchingWorkspaces ? (
             <Card>
               <Card.Body />
-              <Card.Footer />
+              <Card.Footer>
+                <span />
+              </Card.Footer>
             </Card>
-          ) : workspacesData?.workspaces.length > 0 ? (
-            workspacesData.workspaces.map((workspace, index) => (
+          ) : workspaces.length > 0 ? (
+            workspaces.map((workspace, index) => (
               <Card key={index}>
                 <Card.Body title={workspace.name} />
                 <Card.Footer>
@@ -108,10 +124,12 @@ const Welcome = () => {
           {isFetchingInvitations ? (
             <Card>
               <Card.Body />
-              <Card.Footer />
+              <Card.Footer>
+                <span />
+              </Card.Footer>
             </Card>
-          ) : invitationsData?.invitations.length > 0 ? (
-            invitationsData.invitations.map((invitation, index) => (
+          ) : invitations.length > 0 ? (
+            invitations.map((invitation, index) => (
               <Card key={index}>
                 <Card.Body
                   title={invitation.workspace.name}

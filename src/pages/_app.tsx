@@ -1,37 +1,37 @@
-import { useEffect, useState } from 'react';
+import i18n from 'i18next';
+import type { AppProps } from 'next/app';
 import Router, { useRouter } from 'next/router';
 import { SessionProvider } from 'next-auth/react';
 import { ThemeProvider } from 'next-themes';
+import { useEffect, useState } from 'react';
 import ReactGA from 'react-ga';
+import { initReactI18next } from 'react-i18next';
 import TopBarProgress from 'react-topbar-progress-indicator';
 import { SWRConfig } from 'swr';
-import i18n from 'i18next';
-import { useTranslation, initReactI18next } from 'react-i18next';
 
 import progressBarConfig from '@/config/progress-bar/index';
 import swrConfig from '@/config/swr/index';
 import WorkspaceProvider from '@/providers/workspace';
+import enMessages from '@/../src/messages/en.json';
 
 import '@/styles/globals.css';
-let rawdata = require('../messages/en.json');
 
-let langCode = 'en';
-let langObject = {};
-langObject[langCode] = {};
+const langCode = 'en';
+const langObject: Record<string, { translation: typeof enMessages }> = {
+  [langCode]: { translation: enMessages },
+};
 
-langObject[langCode].translation = rawdata;
 i18n.use(initReactI18next).init({
   resources: langObject,
-  lng: 'en',
-  fallbackLng: 'en',
+  lng: langCode,
+  fallbackLng: langCode,
   interpolation: {
     escapeValue: false,
   },
 });
 
-const App = ({ Component, pageProps }) => {
+const App = ({ Component, pageProps }: AppProps) => {
   const [progress, setProgress] = useState(false);
-  const { t } = useTranslation();
   const router = useRouter();
   const swrOptions = swrConfig();
 
@@ -40,13 +40,16 @@ const App = ({ Component, pageProps }) => {
   TopBarProgress.config(progressBarConfig());
 
   useEffect(() => {
-    if (process.env.NODE_ENV === 'production') {
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID
+    ) {
       ReactGA.initialize(process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID);
     }
   }, []);
 
   useEffect(() => {
-    const handleRouteChange = (url) => {
+    const handleRouteChange = (url: string) => {
       ReactGA.pageview(url);
     };
 

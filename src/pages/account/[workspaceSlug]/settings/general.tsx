@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
 import { DocumentDuplicateIcon } from '@heroicons/react/24/outline';
+import type { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
 import { getSession } from 'next-auth/react';
+import { useEffect, useState, type ChangeEvent, type MouseEvent } from 'react';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import isAlphanumeric from 'validator/lib/isAlphanumeric';
 import isSlug from 'validator/lib/isSlug';
 
@@ -12,18 +14,31 @@ import Card from '@/components/Card/index';
 import Content from '@/components/Content/index';
 import Meta from '@/components/Meta/index';
 import { AccountLayout } from '@/layouts/index';
-import api from '@/lib/common/api';
-import { useWorkspace } from '@/providers/workspace';
+import apiFetch from '@/lib/common/api';
+import { useWorkspace, type Workspace } from '@/providers/workspace';
 import { getWorkspace, isWorkspaceOwner } from '@/prisma/services/workspace';
-import { useTranslation } from 'react-i18next';
 
-const General = ({ isTeamOwner, workspace }) => {
+type GeneralProps = {
+  isTeamOwner: boolean;
+  workspace: Workspace | null;
+};
+
+type SlugResponse = {
+  errors?: Record<string, { msg: string }>;
+  data?: { slug: string };
+};
+
+type MutationResponse = {
+  errors?: Record<string, { msg: string }>;
+};
+
+const General = ({ isTeamOwner, workspace }: GeneralProps) => {
   const router = useRouter();
   const { setWorkspace } = useWorkspace();
   const { t } = useTranslation();
   const [isSubmitting, setSubmittingState] = useState(false);
-  const [name, setName] = useState(workspace.name || '');
-  const [slug, setSlug] = useState(workspace.slug || '');
+  const [name, setName] = useState(workspace?.name ?? '');
+  const [slug, setSlug] = useState(workspace?.slug ?? '');
   const validName = name.length > 0 && name.length <= 16;
   const validSlug =
     slug.length > 0 &&
@@ -31,10 +46,19 @@ const General = ({ isTeamOwner, workspace }) => {
     isSlug(slug) &&
     isAlphanumeric(slug, undefined, { ignore: '-' });
 
-  const changeName = (event) => {
+  useEffect(() => {
+    if (!workspace) return;
+    setName(workspace.name);
+    setSlug(workspace.slug);
+    setWorkspace(workspace);
+  }, [workspace, setWorkspace]);
+
+  if (!workspace) return null;
+
+  const changeName = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setSubmittingState(true);
-    api(`/api/workspace/${workspace.slug}/name`, {
+    apiFetch<MutationResponse>(`/api/workspace/${workspace.slug}/name`, {
       body: { name },
       method: 'PUT',
     }).then((response) => {
@@ -42,7 +66,7 @@ const General = ({ isTeamOwner, workspace }) => {
 
       if (response.errors) {
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
       } else {
         toast.success('Workspace name successfully updated!');
@@ -50,38 +74,34 @@ const General = ({ isTeamOwner, workspace }) => {
     });
   };
 
-  const changeSlug = (event) => {
+  const changeSlug = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setSubmittingState(true);
-    api(`/api/workspace/${workspace.slug}/slug`, {
+    apiFetch<SlugResponse>(`/api/workspace/${workspace.slug}/slug`, {
       body: { slug },
       method: 'PUT',
     }).then((response) => {
       setSubmittingState(false);
-      const slug = response?.data?.slug;
+      const newSlug = response?.data?.slug;
 
       if (response.errors) {
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
-      } else {
+      } else if (newSlug) {
         toast.success('Workspace slug successfully updated!');
-        router.replace(`/account/${slug}/settings/general`);
+        router.replace(`/account/${newSlug}/settings/general`);
       }
     });
   };
 
   const copyToClipboard = () => toast.success('Copied to clipboard!');
 
-  const handleNameChange = (event) => setName(event.target.value);
+  const handleNameChange = (event: ChangeEvent<HTMLInputElement>) =>
+    setName(event.target.value);
 
-  const handleSlugChange = (event) => setSlug(event.target.value);
-
-  useEffect(() => {
-    setName(workspace.name);
-    setSlug(workspace.slug);
-    setWorkspace(workspace);
-  }, [workspace, setWorkspace]);
+  const handleSlugChange = (event: ChangeEvent<HTMLInputElement>) =>
+    setSlug(event.target.value);
 
   return (
     <AccountLayout>
@@ -131,7 +151,9 @@ const General = ({ isTeamOwner, workspace }) => {
                 type="text"
                 value={slug}
               />
-              <span className={`text-sm ${slug.length > 16 && 'text-red-600'}`}>
+              <span
+                className={`text-sm ${slug.length > 16 ? 'text-red-600' : ''}`}
+              >
                 {slug.length} / 16
               </span>
             </div>
@@ -155,10 +177,12 @@ const General = ({ isTeamOwner, workspace }) => {
             subtitle={t('settings.workspace.id.description')}
           >
             <div className="flex items-center justify-between px-3 py-2 space-x-5 font-mono text-sm border rounded md:w-1/2">
-              <span className="overflow-x-auto">{workspace.workspaceCode}</span>
+              <span className="overflow-x-auto">
+                {String(workspace.workspaceCode)}
+              </span>
               <CopyToClipboard
                 onCopy={copyToClipboard}
-                text={workspace.workspaceCode}
+                text={String(workspace.workspaceCode)}
               >
                 <DocumentDuplicateIcon className="w-5 h-5 cursor-pointer hover:text-blue-600" />
               </CopyToClipboard>
@@ -170,28 +194,34 @@ const General = ({ isTeamOwner, workspace }) => {
   );
 };
 
-export const getServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps<GeneralProps> = async (
+  context
+) => {
   const session = await getSession(context);
   let isTeamOwner = false;
-  let workspace = null;
+  let workspace: Workspace | null = null;
 
-  if (session) {
-    workspace = await getWorkspace(
-      session.user.userId,
-      session.user.email,
-      context.params.workspaceSlug
-    );
+  if (session?.user) {
+    const workspaceSlug =
+      typeof context.params?.workspaceSlug === 'string'
+        ? context.params.workspaceSlug
+        : '';
+    const dbWorkspace = workspaceSlug
+      ? await getWorkspace(
+          session.user.userId,
+          session.user.email,
+          workspaceSlug
+        )
+      : null;
 
-    if (workspace) {
-      isTeamOwner = isWorkspaceOwner(session.user.email, workspace);
+    if (dbWorkspace) {
+      isTeamOwner = isWorkspaceOwner(session.user.email, dbWorkspace);
+      workspace = { ...(dbWorkspace as Workspace), slug: workspaceSlug };
     }
   }
 
   return {
-    props: {
-      isTeamOwner,
-      workspace,
-    },
+    props: { isTeamOwner, workspace },
   };
 };
 

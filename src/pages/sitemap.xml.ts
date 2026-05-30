@@ -1,6 +1,8 @@
-const Sitemap = () => {};
+import type { GetServerSideProps } from 'next';
 
-export const getServerSideProps = async ({ res }) => {
+const Sitemap = () => null;
+
+export const getServerSideProps: GetServerSideProps = async ({ res }) => {
   const publicPages = ['index', 'auth/login'];
   const staticPages = publicPages.map(
     (staticPagePath) =>

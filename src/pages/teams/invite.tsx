@@ -1,22 +1,48 @@
-import { useState } from 'react';
+import type { GetServerSideProps } from 'next';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
+import { useSession } from 'next-auth/react';
+import { useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 
+import Button from '@/components/Button/index';
 import Card from '@/components/Card/index';
-import Button from '@/components/Button';
-import api from '@/lib/common/api';
+import apiFetch from '@/lib/common/api';
 import { getInvitation } from '@/prisma/services/workspace';
 
-const Invite = ({ workspace }) => {
+type Invitation = {
+  id: string;
+  name: string;
+  workspaceCode: string;
+  slug: string;
+};
+
+type InviteProps = {
+  workspace: Invitation | null;
+};
+
+type JoinResponse = {
+  status: number;
+  errors?: Record<string, { msg: string }>;
+};
+
+const Invite = ({ workspace }: InviteProps) => {
   const { data } = useSession();
   const router = useRouter();
   const [isSubmitting, setSubmittingState] = useState(false);
 
+  if (!workspace) {
+    return (
+      <main className="relative flex flex-col items-center justify-center h-screen space-y-10">
+        <Toaster position="bottom-center" toastOptions={{ duration: 10000 }} />
+        <h1 className="text-2xl font-bold">Invitation not found</h1>
+      </main>
+    );
+  }
+
   const join = () => {
     setSubmittingState(true);
-    api(`/api/workspace/team/join`, {
+    apiFetch<JoinResponse>('/api/workspace/team/join', {
       body: { workspaceCode: workspace.workspaceCode },
       method: 'POST',
     }).then((response) => {
@@ -28,7 +54,7 @@ const Invite = ({ workspace }) => {
         }
 
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
       } else {
         toast.success('Accepted invitation!');
@@ -73,9 +99,11 @@ const Invite = ({ workspace }) => {
   );
 };
 
-export const getServerSideProps = async (context) => {
-  const { code } = context.query;
-  const workspace = await getInvitation(code);
+export const getServerSideProps: GetServerSideProps<InviteProps> = async (
+  context
+) => {
+  const code = typeof context.query.code === 'string' ? context.query.code : '';
+  const workspace = code ? await getInvitation(code) : null;
   return { props: { workspace } };
 };
 

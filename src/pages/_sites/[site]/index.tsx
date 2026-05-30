@@ -1,15 +1,26 @@
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
+import type { GetStaticPaths, GetStaticProps } from 'next';
 import DefaultErrorPage from 'next/error';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
-import Meta from '@/components/Meta';
+import Meta from '@/components/Meta/index';
 import {
   getSiteWorkspace,
   getWorkspacePaths,
 } from '@/prisma/services/workspace';
 
-const Site = ({ workspace }) => {
+type SiteWorkspace = {
+  name: string;
+  hostname: string;
+  domains: Array<{ name: string }>;
+};
+
+type SiteProps = {
+  workspace: SiteWorkspace | null;
+};
+
+const Site = ({ workspace }: SiteProps) => {
   const router = useRouter();
 
   if (router.isFallback) {
@@ -50,13 +61,13 @@ const Site = ({ workspace }) => {
     </main>
   ) : (
     <>
-      <Meta noIndex />
+      <Meta title="Not found" noIndex />
       <DefaultErrorPage statusCode={404} />
     </>
   );
 };
 
-export const getStaticPaths = async () => {
+export const getStaticPaths: GetStaticPaths = async () => {
   const paths = await getWorkspacePaths();
   return {
     paths,
@@ -64,10 +75,15 @@ export const getStaticPaths = async () => {
   };
 };
 
-export const getStaticProps = async ({ params }) => {
-  const { site } = params;
+export const getStaticProps: GetStaticProps<SiteProps> = async ({ params }) => {
+  const site = typeof params?.site === 'string' ? params.site : '';
+
+  if (!site || !process.env.APP_URL) {
+    return { props: { workspace: null }, revalidate: 10 };
+  }
+
   const siteWorkspace = await getSiteWorkspace(site, site.includes('.'));
-  let workspace = null;
+  let workspace: SiteWorkspace | null = null;
 
   if (siteWorkspace) {
     const { host } = new URL(process.env.APP_URL);

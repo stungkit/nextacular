@@ -1,4 +1,3 @@
-import { Fragment, useState } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import {
   ChevronDownIcon,
@@ -8,9 +7,12 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { InvitationStatus, TeamRole } from '@prisma/client';
+import type { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
+import { Fragment, useState, type ChangeEvent } from 'react';
 import CopyToClipboard from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import isEmail from 'validator/lib/isEmail';
 
 import Button from '@/components/Button/index';
@@ -19,33 +21,67 @@ import Content from '@/components/Content/index';
 import Meta from '@/components/Meta/index';
 import { useMembers } from '@/hooks/data';
 import { AccountLayout } from '@/layouts/index';
-import api from '@/lib/common/api';
+import apiFetch from '@/lib/common/api';
 import { getWorkspace, isWorkspaceOwner } from '@/prisma/services/workspace';
-import { useTranslation } from 'react-i18next';
 
-const MEMBERS_TEMPLATE = { email: '', role: TeamRole.MEMBER };
+type MemberFormRow = { email: string; role: TeamRole };
 
-const Team = ({ isTeamOwner, workspace }) => {
+type WorkspaceForTeam = {
+  slug: string;
+  name: string;
+  inviteCode: string;
+  inviteLink: string;
+  creator: { email: string | null };
+};
+
+type ListMember = {
+  id: string;
+  email: string;
+  status: InvitationStatus;
+  teamRole: TeamRole;
+  member?: { name?: string | null } | null;
+};
+
+type TeamProps = {
+  isTeamOwner: boolean;
+  workspace: WorkspaceForTeam | null;
+};
+
+type MutationResponse = {
+  errors?: Record<string, { msg: string }>;
+};
+
+const MEMBERS_TEMPLATE: MemberFormRow = {
+  email: '',
+  role: TeamRole.MEMBER,
+};
+
+const Team = ({ isTeamOwner, workspace }: TeamProps) => {
   const { t } = useTranslation();
-  const { data, isLoading } = useMembers(workspace.slug);
+  const { data, isLoading } = useMembers(workspace?.slug ?? '');
   const [isSubmitting, setSubmittingState] = useState(false);
-  const [members, setMembers] = useState([{ ...MEMBERS_TEMPLATE }]);
+  const [members, setMembers] = useState<MemberFormRow[]>([
+    { ...MEMBERS_TEMPLATE },
+  ]);
   const validateEmails =
     members.filter((member) => !isEmail(member.email)).length !== 0;
 
+  if (!workspace) return null;
+
+  const memberList = (data?.members as ListMember[] | undefined) ?? [];
+
   const addEmail = () => {
-    members.push({ ...MEMBERS_TEMPLATE });
-    setMembers([...members]);
+    setMembers([...members, { ...MEMBERS_TEMPLATE }]);
   };
 
-  const changeRole = (memberId) => {
-    api(`/api/workspace/team/role`, {
+  const changeRole = (memberId: string) => {
+    apiFetch<MutationResponse>('/api/workspace/team/role', {
       body: { memberId },
       method: 'PUT',
     }).then((response) => {
       if (response.errors) {
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
       } else {
         toast.success('Updated team member role!');
@@ -55,21 +91,31 @@ const Team = ({ isTeamOwner, workspace }) => {
 
   const copyToClipboard = () => toast.success('Copied to clipboard!');
 
-  const handleEmailChange = (event, index) => {
-    const member = members[index];
-    member.email = event.target.value;
-    setMembers([...members]);
+  const handleEmailChange = (
+    event: ChangeEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    const next = [...members];
+    const row = next[index];
+    if (!row) return;
+    row.email = event.target.value;
+    setMembers(next);
   };
 
-  const handleRoleChange = (event, index) => {
-    const member = members[index];
-    member.role = event.target.value;
-    setMembers([...members]);
+  const handleRoleChange = (
+    event: ChangeEvent<HTMLSelectElement>,
+    index: number
+  ) => {
+    const next = [...members];
+    const row = next[index];
+    if (!row) return;
+    row.role = event.target.value as TeamRole;
+    setMembers(next);
   };
 
   const invite = () => {
     setSubmittingState(true);
-    api(`/api/workspace/${workspace.slug}/invite`, {
+    apiFetch<MutationResponse>(`/api/workspace/${workspace.slug}/invite`, {
       body: { members },
       method: 'POST',
     }).then((response) => {
@@ -77,29 +123,29 @@ const Team = ({ isTeamOwner, workspace }) => {
 
       if (response.errors) {
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
       } else {
-        const members = [{ ...MEMBERS_TEMPLATE }];
-        setMembers([...members]);
+        setMembers([{ ...MEMBERS_TEMPLATE }]);
         toast.success('Invited team members!');
       }
     });
   };
 
-  const remove = (index) => {
-    members.splice(index, 1);
-    setMembers([...members]);
+  const removeRow = (index: number) => {
+    const next = [...members];
+    next.splice(index, 1);
+    setMembers(next);
   };
 
-  const removeMember = (memberId) => {
-    api(`/api/workspace/team/member`, {
+  const removeMember = (memberId: string) => {
+    apiFetch<MutationResponse>('/api/workspace/team/member', {
       body: { memberId },
       method: 'DELETE',
     }).then((response) => {
       if (response.errors) {
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
       } else {
         toast.success('Removed team member from workspace!');
@@ -167,9 +213,14 @@ const Team = ({ isTeamOwner, workspace }) => {
                         disabled={isSubmitting}
                         onChange={(event) => handleRoleChange(event, index)}
                       >
-                        {Object.keys(TeamRole).map((key, index) => (
-                          <option key={index} value={TeamRole[`${key}`]}>
-                            {TeamRole[`${key}`].toLowerCase()}
+                        {Object.keys(TeamRole).map((key, keyIndex) => (
+                          <option
+                            key={keyIndex}
+                            value={TeamRole[key as keyof typeof TeamRole]}
+                          >
+                            {TeamRole[
+                              key as keyof typeof TeamRole
+                            ].toLowerCase()}
                           </option>
                         ))}
                       </select>
@@ -180,7 +231,7 @@ const Team = ({ isTeamOwner, workspace }) => {
                     {index !== 0 && (
                       <button
                         className="text-red-600"
-                        onClick={() => remove(index)}
+                        onClick={() => removeRow(index)}
                       >
                         <XMarkIcon className="w-5 h-5" />
                       </button>
@@ -232,12 +283,12 @@ const Team = ({ isTeamOwner, workspace }) => {
               </thead>
               <tbody className="text-sm">
                 {!isLoading ? (
-                  data?.members.map((member, index) => (
+                  memberList.map((member, index) => (
                     <tr key={index}>
                       <td className="py-5">
                         <div className="flex flex-row items-center justify-start space-x-3">
                           <div className="flex flex-col">
-                            <h3 className="font-bold">{member.member.name}</h3>
+                            <h3 className="font-bold">{member.member?.name}</h3>
                             <h4 className="text-gray-400">{member.email}</h4>
                           </div>
                         </div>
@@ -259,7 +310,7 @@ const Team = ({ isTeamOwner, workspace }) => {
                           <h4 className="capitalize">
                             {member.teamRole.toLowerCase()}
                           </h4>
-                          {workspace?.creator.email !== member.email &&
+                          {workspace.creator.email !== member.email &&
                             isTeamOwner && (
                               <Menu
                                 as="div"
@@ -330,31 +381,40 @@ const Team = ({ isTeamOwner, workspace }) => {
   );
 };
 
-export const getServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps<TeamProps> = async (
+  context
+) => {
   const session = await getSession(context);
   let isTeamOwner = false;
-  let workspace = null;
+  let workspace: WorkspaceForTeam | null = null;
 
-  if (session) {
-    workspace = await getWorkspace(
-      session.user.userId,
-      session.user.email,
-      context.params.workspaceSlug
-    );
+  if (session?.user) {
+    const workspaceSlug =
+      typeof context.params?.workspaceSlug === 'string'
+        ? context.params.workspaceSlug
+        : '';
+    const dbWorkspace = workspaceSlug
+      ? await getWorkspace(
+          session.user.userId,
+          session.user.email,
+          workspaceSlug
+        )
+      : null;
 
-    if (workspace) {
-      isTeamOwner = isWorkspaceOwner(session.user.email, workspace);
-      workspace.inviteLink = `${
-        process.env.APP_URL
-      }/teams/invite?code=${encodeURI(workspace.inviteCode)}`;
+    if (dbWorkspace) {
+      isTeamOwner = isWorkspaceOwner(session.user.email, dbWorkspace);
+      workspace = {
+        slug: workspaceSlug,
+        name: dbWorkspace.name,
+        inviteCode: dbWorkspace.inviteCode,
+        inviteLink: `${process.env.APP_URL}/teams/invite?code=${encodeURI(dbWorkspace.inviteCode)}`,
+        creator: { email: dbWorkspace.creator.email },
+      };
     }
   }
 
   return {
-    props: {
-      isTeamOwner,
-      workspace,
-    },
+    props: { isTeamOwner, workspace },
   };
 };
 

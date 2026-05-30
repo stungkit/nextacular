@@ -1,29 +1,35 @@
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getProviders, signIn, useSession } from 'next-auth/react';
+import { useEffect, useState, type ChangeEvent, type MouseEvent } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import isEmail from 'validator/lib/isEmail';
 
 import Meta from '@/components/Meta/index';
 import { AuthLayout } from '@/layouts/index';
-import { useTranslation } from 'react-i18next';
+
+type SocialProvider = {
+  id: string;
+  name: string;
+};
 
 const Login = () => {
   const { status } = useSession();
   const [email, setEmail] = useState('');
   const { t } = useTranslation();
   const [isSubmitting, setSubmittingState] = useState(false);
-  const [socialProviders, setSocialProviders] = useState([]);
+  const [socialProviders, setSocialProviders] = useState<SocialProvider[]>([]);
   const validate = isEmail(email);
 
-  const handleEmailChange = (event) => setEmail(event.target.value);
+  const handleEmailChange = (event: ChangeEvent<HTMLInputElement>) =>
+    setEmail(event.target.value);
 
-  const signInWithEmail = async (event) => {
+  const signInWithEmail = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setSubmittingState(true);
     const response = await signIn('email', { email, redirect: false });
 
-    if (response.error === null) {
+    if (response?.error === null) {
       toast.success(`Please check your email (${email}) for the login link.`, {
         duration: 5000,
       });
@@ -33,20 +39,28 @@ const Login = () => {
     setSubmittingState(false);
   };
 
-  const signInWithSocial = (socialId) => {
+  const signInWithSocial = (socialId: string) => {
     signIn(socialId);
   };
 
   useEffect(() => {
     (async () => {
-      const socialProviders = [];
-      const { email, ...providers } = await getProviders();
+      const next: SocialProvider[] = [];
+      const providers = await getProviders();
 
-      for (const provider in providers) {
-        socialProviders.push(providers[provider]);
+      if (!providers) {
+        return;
       }
 
-      setSocialProviders([...socialProviders]);
+      for (const key in providers) {
+        if (key === 'email') continue;
+        const provider = providers[key];
+        if (provider) {
+          next.push({ id: provider.id, name: provider.name });
+        }
+      }
+
+      setSocialProviders(next);
     })();
   }, []);
 
