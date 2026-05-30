@@ -1,14 +1,10 @@
-import { check } from 'express-validator';
+import isFQDN from 'validator/lib/isFQDN';
+import { z } from 'zod';
 
-import initMiddleware from '@/lib/server/init-middleware';
-import validate from '@/lib/server/validate';
+export const addDomainSchema = z.object({
+  domainName: z.string().refine((value) => isFQDN(value), {
+    message: 'Domain name must be a fully qualified domain name',
+  }),
+});
 
-const rules = [
-  check('domainName')
-    .isFQDN()
-    .withMessage('Domain name must be a fully qualified domain name'),
-];
-
-const validateAddDomain = initMiddleware(validate(rules));
-
-export default validateAddDomain;
+export type AddDomainBody = z.infer<typeof addDomainSchema>;

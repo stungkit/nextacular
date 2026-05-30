@@ -1,19 +1,17 @@
 import { TeamRole } from '@prisma/client';
-import { check } from 'express-validator';
+import { z } from 'zod';
 
-import initMiddleware from '@/lib/server/init-middleware';
-import validate from '@/lib/server/validate';
+export const workspaceInviteSchema = z.object({
+  members: z
+    .array(
+      z.object({
+        email: z.string().email('Email must be valid'),
+        role: z.nativeEnum(TeamRole, {
+          error: () => 'Role must either be MEMBER or OWNER',
+        }),
+      })
+    )
+    .nonempty('Members data must be a list of emails and roles'),
+});
 
-const rules = [
-  check('members')
-    .isArray()
-    .withMessage('Members data must be a list of emails and roles'),
-  check('members.*.email').isEmail().withMessage('Email must be valid'),
-  check('members.*.role')
-    .isIn([TeamRole.MEMBER, TeamRole.OWNER])
-    .withMessage('Rule must either be MEMBER or OWNER'),
-];
-
-const validateWorkspaceInvite = initMiddleware(validate(rules));
-
-export default validateWorkspaceInvite;
+export type WorkspaceInviteBody = z.infer<typeof workspaceInviteSchema>;

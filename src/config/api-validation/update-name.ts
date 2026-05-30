@@ -1,14 +1,10 @@
-import { check } from 'express-validator';
+import { z } from 'zod';
 
-import initMiddleware from '@/lib/server/init-middleware';
-import validate from '@/lib/server/validate';
+export const updateNameSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Name must be provided and must not exceed 32 characters')
+    .max(32, 'Name must be provided and must not exceed 32 characters'),
+});
 
-const rules = [
-  check('name')
-    .isLength({ min: 1, max: 32 })
-    .withMessage('Name must be provided and must not exceed 32 characters'),
-];
-
-const validateUpdateName = initMiddleware(validate(rules));
-
-export default validateUpdateName;
+export type UpdateNameBody = z.infer<typeof updateNameSchema>;

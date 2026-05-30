@@ -1,30 +1,28 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import {
-  validationResult,
-  type ValidationChain,
-  type ValidationError,
-} from 'express-validator';
+import type { NextApiResponse } from 'next';
+import type { z, ZodTypeAny } from 'zod';
 
-type NextFn = (_result?: unknown) => void;
-
-const validateMiddleware = (validations: ValidationChain[]) => {
-  return async (req: NextApiRequest, res: NextApiResponse, next: NextFn) => {
-    await Promise.all(validations.map((validation) => validation.run(req)));
-    const errors = validationResult(req);
-
-    if (errors.isEmpty()) {
-      return next();
-    }
-
-    const errorObject: Record<string, ValidationError> = {};
-    errors.array().forEach((error) => {
-      const key = (error as ValidationError & { param?: string }).param;
-      if (key) {
-        errorObject[key] = error;
-      }
-    });
-    res.status(422).json({ errors: errorObject });
-  };
+export type ValidationErrorPayload = {
+  errors: Record<string, { msg: string }>;
 };
 
-export default validateMiddleware;
+export const parseBody = <S extends ZodTypeAny>(
+  schema: S,
+  body: unknown,
+  res: NextApiResponse
+): z.infer<S> | null => {
+  const result = schema.safeParse(body);
+
+  if (!result.success) {
+    const errors: Record<string, { msg: string }> = {};
+    for (const issue of result.error.issues) {
+      const key = issue.path.length > 0 ? issue.path.join('.') : 'body';
+      if (!errors[key]) {
+        errors[key] = { msg: issue.message };
+      }
+    }
+    res.status(422).json({ errors });
+    return null;
+  }
+
+  return result.data;
+};

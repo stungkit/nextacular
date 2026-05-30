@@ -1,19 +1,20 @@
-import validateAddDomain from './add-domain';
-import validateCreateWorkspace from './create-workspace';
-import validateSession from './session';
-import validateUpdateEmail from './update-email';
-import validateUpdateName from './update-name';
-import validateUpdateWorkspaceName from './update-workspace-name';
-import validateUpdateWorkspaceSlug from './update-workspace-slug';
-import validateWorkspaceInvite from './workspace-invite';
-
+export { addDomainSchema, type AddDomainBody } from './add-domain';
 export {
-  validateAddDomain,
-  validateCreateWorkspace,
-  validateSession,
-  validateUpdateName,
-  validateUpdateEmail,
-  validateUpdateWorkspaceName,
-  validateUpdateWorkspaceSlug,
-  validateWorkspaceInvite,
-};
+  createWorkspaceSchema,
+  type CreateWorkspaceBody,
+} from './create-workspace';
+export { default as validateSession } from './session';
+export { updateEmailSchema, type UpdateEmailBody } from './update-email';
+export { updateNameSchema, type UpdateNameBody } from './update-name';
+export {
+  updateWorkspaceNameSchema,
+  type UpdateWorkspaceNameBody,
+} from './update-workspace-name';
+export {
+  updateWorkspaceSlugSchema,
+  type UpdateWorkspaceSlugBody,
+} from './update-workspace-slug';
+export {
+  workspaceInviteSchema,
+  type WorkspaceInviteBody,
+} from './workspace-invite';

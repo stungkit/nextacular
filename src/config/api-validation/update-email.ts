@@ -1,10 +1,7 @@
-import { check } from 'express-validator';
+import { z } from 'zod';
 
-import initMiddleware from '@/lib/server/init-middleware';
-import validate from '@/lib/server/validate';
+export const updateEmailSchema = z.object({
+  email: z.string().email('Email must be valid'),
+});
 
-const rules = [check('email').isEmail().withMessage('Email must be valid')];
-
-const validateUpdateEmail = initMiddleware(validate(rules));
-
-export default validateUpdateEmail;
+export type UpdateEmailBody = z.infer<typeof updateEmailSchema>;

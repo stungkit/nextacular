@@ -1,8 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import { validateAddDomain, validateSession } from '@/config/api-validation';
+import { addDomainSchema, validateSession } from '@/config/api-validation';
 import apiFetch from '@/lib/common/api';
 import { requireWorkspaceOwner } from '@/lib/server/authorization';
+import { parseBody } from '@/lib/server/validate';
 import {
   createDomain,
   deleteDomain,
@@ -32,7 +33,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   if (method === 'POST') {
     const session = await validateSession(req, res);
-    await validateAddDomain(req, res);
+    const body = parseBody(addDomainSchema, req.body, res);
+    if (!body) return;
     const workspace = await requireWorkspaceOwner(
       req,
       res,
@@ -42,7 +44,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     if (!workspace) return;
 
-    const { domainName } = req.body as { domainName: string };
+    const { domainName } = body;
     const response = await apiFetch<VercelDomainResponse>(
       `${process.env.VERCEL_API_URL}/v9/projects/${process.env.VERCEL_PROJECT_ID}/domains${teamSuffix}`,
       {
