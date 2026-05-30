@@ -11,7 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'next-themes';
 
 const Header = () => {
@@ -65,7 +65,7 @@ const Header = () => {
                   className="flex items-center w-full px-2 py-2 space-x-2 text-sm text-gray-800 rounded hover:bg-blue-600 hover:text-white group"
                 >
                   <UserCircleIcon aria-hidden="true" className="w-5 h-5" />
-                  <span>{t("common.label.account")}</span>
+                  <span>{t('common.label.account')}</span>
                 </Link>
               </Menu.Item>
               <Menu.Item>
@@ -74,7 +74,7 @@ const Header = () => {
                   className="flex items-center w-full px-2 py-2 space-x-2 text-sm text-gray-800 rounded hover:bg-blue-600 hover:text-white group"
                 >
                   <CreditCardIcon aria-hidden="true" className="w-5 h-5" />
-                  <span>{t("common.label.billing")}</span>
+                  <span>{t('common.label.billing')}</span>
                 </Link>
               </Menu.Item>
             </div>
@@ -85,7 +85,7 @@ const Header = () => {
                   className="flex items-center w-full px-2 py-2 space-x-2 text-sm text-gray-800 rounded hover:bg-blue-600 hover:text-white group"
                 >
                   <ComputerDesktopIcon aria-hidden="true" className="w-5 h-5" />
-                  <span>{t("common.label.landingpage")}</span>
+                  <span>{t('common.label.landingpage')}</span>
                 </Link>
               </Menu.Item>
               <Menu.Item>
@@ -96,12 +96,12 @@ const Header = () => {
                   {theme === 'dark' ? (
                     <>
                       <SunIcon className="w-5 h-5" />
-                      <span>{t("common.label.light.mode")}</span>
+                      <span>{t('common.label.light.mode')}</span>
                     </>
                   ) : (
                     <>
                       <MoonIcon className="w-5 h-5" />
-                      <span>{t("common.label.dark.mode")}</span>
+                      <span>{t('common.label.dark.mode')}</span>
                     </>
                   )}
                 </button>
@@ -117,7 +117,7 @@ const Header = () => {
                     aria-hidden="true"
                     className="w-5 h-5"
                   />
-                  <span>{t("common.label.logout")}</span>
+                  <span>{t('common.label.logout')}</span>
                 </button>
               </Menu.Item>
             </div>

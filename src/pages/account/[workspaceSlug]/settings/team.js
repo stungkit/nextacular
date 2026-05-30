@@ -21,7 +21,7 @@ import { useMembers } from '@/hooks/data';
 import { AccountLayout } from '@/layouts/index';
 import api from '@/lib/common/api';
 import { getWorkspace, isWorkspaceOwner } from '@/prisma/services/workspace';
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 
 const MEMBERS_TEMPLATE = { email: '', role: TeamRole.MEMBER };
 
@@ -111,15 +111,15 @@ const Team = ({ isTeamOwner, workspace }) => {
     <AccountLayout>
       <Meta title={`Nextacular - ${workspace.name} | Team Management`} />
       <Content.Title
-        title={t("settings.team.management")}
-        subtitle={t("settings.team.manage.members")}
+        title={t('settings.team.management')}
+        subtitle={t('settings.team.manage.members')}
       />
       <Content.Divider />
       <Content.Container>
         <Card>
           <Card.Body
-            title={t("settings.team.invite.link")}
-            subtitle={t("settings.team.invite.link.description")}
+            title={t('settings.team.invite.link')}
+            subtitle={t('settings.team.invite.link.description')}
           >
             <div className="flex items-center justify-between px-3 py-2 space-x-5 font-mono text-sm border rounded">
               <span className="overflow-x-auto">{workspace.inviteLink}</span>
@@ -142,12 +142,12 @@ const Team = ({ isTeamOwner, workspace }) => {
                 <div className="flex flex-row space-x-5">
                   <div className="w-1/2">
                     <label className="text-sm font-bold text-gray-400">
-                      {t("common.label.email")}
+                      {t('common.label.email')}
                     </label>
                   </div>
                   <div className="w-1/2 md:w-1/4">
                     <label className="text-sm font-bold text-gray-400">
-                      {t("common.label.role")}
+                      {t('common.label.role')}
                     </label>
                   </div>
                 </div>
@@ -194,7 +194,7 @@ const Team = ({ isTeamOwner, workspace }) => {
                     onClick={addEmail}
                   >
                     <PlusCircleIcon className="w-5 h-5" />
-                    <span>{t("common.action.addmore")}</span>
+                    <span>{t('common.action.addmore')}</span>
                   </Button>
                 </div>
               </div>
@@ -208,7 +208,7 @@ const Team = ({ isTeamOwner, workspace }) => {
                 disabled={validateEmails || isSubmitting}
                 onClick={invite}
               >
-                {t("common.label.invite")}
+                {t('common.label.invite')}
               </Button>
             </Card.Footer>
           </Card>
@@ -216,8 +216,8 @@ const Team = ({ isTeamOwner, workspace }) => {
       </Content.Container>
       <Content.Divider thick />
       <Content.Title
-        title={t("settings.team.members")}
-        subtitle={t("settings.team.pending.invites")}
+        title={t('settings.team.members')}
+        subtitle={t('settings.team.pending.invites')}
       />
       <Content.Divider />
       <Content.Container>
@@ -250,8 +250,8 @@ const Team = ({ isTeamOwner, workspace }) => {
                               member.status === InvitationStatus.ACCEPTED
                                 ? 'bg-green-200 text-green-600'
                                 : member.status === InvitationStatus.PENDING
-                                ? 'bg-blue-200 text-blue-600'
-                                : 'bg-red-200 text-red-600',
+                                  ? 'bg-blue-200 text-blue-600'
+                                  : 'bg-red-200 text-red-600',
                             ].join(' ')}
                           >
                             {member.status.toLowerCase()}

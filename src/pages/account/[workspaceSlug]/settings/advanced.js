@@ -12,7 +12,7 @@ import api from '@/lib/common/api';
 import { useWorkspace } from '@/providers/workspace';
 import { getSession } from 'next-auth/react';
 import { getWorkspace, isWorkspaceCreator } from '@/prisma/services/workspace';
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 
 const Advanced = ({ isCreator }) => {
   const { setWorkspace, workspace } = useWorkspace();
@@ -55,21 +55,21 @@ const Advanced = ({ isCreator }) => {
     <AccountLayout>
       <Meta title={`Nextacular - ${workspace?.name} | Advanced Settings`} />
       <Content.Title
-        title={t("settings.workspace.advanced")}
-        subtitle={t("settings.workspace.manage.label")}
+        title={t('settings.workspace.advanced')}
+        subtitle={t('settings.workspace.manage.label')}
       />
       <Content.Divider />
       <Content.Container>
         <Card danger>
           <Card.Body
-            title={t("settings.workspace.delete")}
-            subtitle={t("settings.workspace.delete.message")}
+            title={t('settings.workspace.delete')}
+            subtitle={t('settings.workspace.delete.message')}
           />
           <Card.Footer>
             <small className={[isCreator && 'text-red-600']}>
               {isCreator
-                ? t("setting.workspace.delete.warning.message")
-                : t("settings.workspace.delete.contact.message")}
+                ? t('setting.workspace.delete.warning.message')
+                : t('settings.workspace.delete.contact.message')}
             </small>
             {isCreator && (
               <Button
@@ -87,16 +87,15 @@ const Advanced = ({ isCreator }) => {
             toggle={toggleModal}
           >
             <p className="flex flex-col">
-              <span>
-                {t("settings.workspace.delete.data.warning")}
-              </span>
+              <span>{t('settings.workspace.delete.data.warning')}</span>
               <span>
                 Data associated with this workspace can&apos;t be accessed by
                 team members.
               </span>
             </p>
             <p className="px-3 py-2 text-red-600 border border-red-600 rounded">
-              <strong>Warning:</strong> {t("settings.workspace.delete.final.message")}
+              <strong>Warning:</strong>{' '}
+              {t('settings.workspace.delete.final.message')}
             </p>
             <div className="flex flex-col">
               <label className="text-sm text-gray-400">
@@ -116,7 +115,7 @@ const Advanced = ({ isCreator }) => {
                 disabled={!verifiedWorkspace || isSubmitting}
                 onClick={deleteWorkspace}
               >
-                <span>{t("settings.workspace.delete")}</span>
+                <span>{t('settings.workspace.delete')}</span>
               </Button>
             </div>
           </Modal>

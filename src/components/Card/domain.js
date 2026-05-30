@@ -120,22 +120,22 @@ const DomainCard = ({ apex, cname, domain, isLoading, refresh, remove }) => {
                       {display === 'cname'
                         ? 'CNAME'
                         : display === 'txt'
-                        ? 'TXT'
-                        : 'A'}
+                          ? 'TXT'
+                          : 'A'}
                     </td>
                     <td className="p-3">
                       {display === 'cname'
                         ? 'www'
                         : display === 'txt'
-                        ? subdomain
-                        : '@'}
+                          ? subdomain
+                          : '@'}
                     </td>
                     <td className="p-3">
                       {display === 'cname'
                         ? cname
                         : display === 'txt'
-                        ? value
-                        : apex}
+                          ? value
+                          : apex}
                     </td>
                   </tr>
                 </tbody>
@@ -162,8 +162,8 @@ const DomainCard = ({ apex, cname, domain, isLoading, refresh, remove }) => {
                   {isChecking
                     ? 'Checking...'
                     : !verified
-                    ? 'Verify'
-                    : 'Refresh'}
+                      ? 'Verify'
+                      : 'Refresh'}
                 </Button>
               )}
               <Button

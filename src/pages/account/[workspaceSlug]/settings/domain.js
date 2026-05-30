@@ -15,7 +15,7 @@ import { useDomains } from '@/hooks/data';
 import { AccountLayout } from '@/layouts/index';
 import api from '@/lib/common/api';
 import { getWorkspace, isWorkspaceOwner } from '@/prisma/services/workspace';
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 
 const Domain = ({ isTeamOwner, workspace }) => {
   const { t } = useTranslation();
@@ -92,15 +92,15 @@ const Domain = ({ isTeamOwner, workspace }) => {
     <AccountLayout>
       <Meta title={`Nextacular - ${workspace.name} | Domains`} />
       <Content.Title
-        title={t("settings.domain.subdomain.management")}
-        subtitle={t("settings.domain.subdomain.management.description")}
+        title={t('settings.domain.subdomain.management')}
+        subtitle={t('settings.domain.subdomain.management.description')}
       />
       <Content.Divider />
       <Content.Container>
         <Card>
           <Card.Body
-            title={t("settings.domain.subdomain.title")}
-            subtitle={t("settings.domain.subdomain.description")}
+            title={t('settings.domain.subdomain.title')}
+            subtitle={t('settings.domain.subdomain.description')}
           >
             <div className="flex items-center justify-between px-3 py-2 font-mono text-sm border rounded md:w-1/2">
               <div>
@@ -118,16 +118,16 @@ const Domain = ({ isTeamOwner, workspace }) => {
         <>
           <Content.Divider thick />
           <Content.Title
-            title={t("settings.domain.domain.configuration")}
-            subtitle={t("settings.domain.domain.configuration.description")}
+            title={t('settings.domain.domain.configuration')}
+            subtitle={t('settings.domain.domain.configuration.description')}
           />
           <Content.Divider />
           <Content.Container>
             <Card>
               <form>
                 <Card.Body
-                  title={t("settings.domain.add.label")}
-                  subtitle={t("settings.domain.add.description")}
+                  title={t('settings.domain.add.label')}
+                  subtitle={t('settings.domain.add.description')}
                 >
                   <input
                     className="px-3 py-2 border rounded md:w-1/2"
@@ -166,7 +166,7 @@ const Domain = ({ isTeamOwner, workspace }) => {
               ))
             ) : (
               <Content.Empty>
-                {t("settings.domain.empty.message")}
+                {t('settings.domain.empty.message')}
               </Content.Empty>
             )}
           </Content.Container>

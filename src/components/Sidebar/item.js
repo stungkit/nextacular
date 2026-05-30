@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 
 const Item = ({ data, isLoading }) => {
   const { t } = useTranslation();

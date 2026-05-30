@@ -1,60 +1,93 @@
 # Contributing to Nextacular
 
-We love your input! We want to make contributing to this project as easy and transparent as possible, whether it's:
+Thanks for your interest in improving Nextacular. This guide explains how to set up the project locally, the standards we expect for code changes, and how to submit a pull request.
 
-- Reporting a bug
-- Discussing the current state of the code
-- Submitting a fix
-- Proposing new features
-- Becoming a maintainer
+## Code of Conduct
 
-## We Develop with Github
+By participating, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md). For security-related reports, please follow our [Security Policy](SECURITY.md) instead of opening a public issue.
 
-We use github to host code, to track issues and feature requests, as well as accept pull requests.
+## Prerequisites
 
-## We Use [Github Flow](https://guides.github.com/introduction/flow/index.html), So All Code Changes Happen Through Pull Requests
+- **Node.js 22** (Active LTS). The version is pinned in `.nvmrc`; if you use `nvm`, run `nvm use` from the repo root.
+- **npm** (bundled with Node). We do not commit a `yarn.lock` or `pnpm-lock.yaml`.
+- **PostgreSQL 14+** running locally, or a hosted database (Supabase, Neon, Railway, etc.).
 
-Pull requests are the best way to propose changes to the codebase (we use [Github Flow](https://guides.github.com/introduction/flow/index.html)). We actively welcome your pull requests:
+## Local setup
 
-1. Fork the repo and create your branch from `master`.
-2. If you've added code that should be tested, add tests.
-3. If you've changed APIs, update the documentation.
-4. Ensure the test suite passes.
-5. Make sure your code lints.
-6. Issue that pull request!
+```bash
+# 1. Fork and clone
+git clone https://github.com/<your-handle>/nextacular.git
+cd nextacular
 
-## Any contributions you make will be under the MIT Software License
+# 2. Use the pinned Node version
+nvm use   # or: fnm use
 
-In short, when you submit code changes, your submissions are understood to be under the same [MIT License](http://choosealicense.com/licenses/mit/) that covers the project. Feel free to contact the maintainers if that's a concern.
+# 3. Install dependencies (this also runs `prisma generate`)
+npm install
 
-## Report bugs using Github's [issues](https://github.com/arjayosma/nextacular/issues)
+# 4. Copy the env template and fill in the required values
+cp .env.sample .env
 
-We use GitHub issues to track public bugs. Report a bug by [opening a new issue](); it's that easy!
+# 5. Apply database migrations
+npx prisma migrate deploy
 
-## Write bug reports with detail, background, and sample code
+# 6. (Optional) Seed sample data
+npx prisma db seed
 
-[This is an example](http://stackoverflow.com/q/12488905/180626) of a bug report I wrote, and I think it's not a bad model. Here's [another example from Craig Hockenberry](http://www.openradar.me/11905408), an app developer whom I greatly respect.
+# 7. Start the dev server
+npm run dev
+```
 
-**Great Bug Reports** tend to have:
+The app will be available at <http://localhost:3000>.
 
-- A quick summary and/or background
+### Required environment variables
+
+At minimum you need:
+
+- `DATABASE_URL` — Postgres connection string
+- `NEXTAUTH_SECRET` — generate with `openssl rand -base64 32`
+- `APP_URL` — usually `http://localhost:3000`
+- `EMAIL_FROM`, `EMAIL_SERVER_USER`, `EMAIL_SERVER_PASSWORD`, `EMAIL_SERVICE` — required for magic-link auth. For local development you can point this at an SMTP test inbox (Mailtrap, MailHog, etc.).
+
+See `.env.sample` for the full list and where to source each value.
+
+## Scripts
+
+| Command                | Purpose                              |
+| ---------------------- | ------------------------------------ |
+| `npm run dev`          | Start the dev server with hot reload |
+| `npm run build`        | Production build                     |
+| `npm run start`        | Run the production build             |
+| `npm run lint`         | Run ESLint                           |
+| `npm run format`       | Run Prettier on the codebase         |
+| `npm run format:check` | Verify formatting without writing    |
+
+## Project conventions
+
+- All workspace-scoped API routes must verify authorization with `requireWorkspaceOwner` or `requireWorkspaceMember` from `src/lib/server/authorization.js` before mutating or reading workspace data. Session presence alone is **not** sufficient.
+- Error responses use the shape `{ errors: { error: { msg: '...' } } }` for compatibility with the existing client-side toast handling.
+- Server-only code lives under `src/lib/server/`. Anything imported from there must never end up in a client bundle.
+- Prisma services live under `prisma/services/` and are the single layer that talks to the database.
+
+## Submitting a pull request
+
+1. Create a branch from `main`. Use a short, descriptive name (`fix/team-role-bypass`, `feat/sso-google`, `chore/upgrade-prisma`).
+2. Make focused changes. One concern per PR is much easier to review than a sprawling change.
+3. Run `npm run lint`, `npm run format:check`, and `npm run build` locally.
+4. Update `CHANGELOG.md` for user-facing changes.
+5. Open a PR against `main` and fill out the template. CI will run lint and build automatically.
+6. For security fixes, **do not open a public PR first** — coordinate via the process in [SECURITY.md](SECURITY.md).
+
+## Reporting bugs
+
+Open a GitHub issue with:
+
+- A short summary
 - Steps to reproduce
-  - Be specific!
-  - Give sample code if you can. [My stackoverflow question](http://stackoverflow.com/q/12488905/180626) includes sample code that _anyone_ with a base R setup can run to reproduce what I was seeing
-- What you expected would happen
-- What actually happens
-- Notes (possibly including why you think this might be happening, or stuff you tried that didn't work)
-
-People _love_ thorough bug reports. I'm not even kidding.
-
-## Use a Consistent Coding Style
-
-Utilize .vscode/settings.json file for the coding style consistency.
+- What you expected vs. what happened
+- Your environment (Node version, OS, browser if relevant)
+- Logs or screenshots if useful
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under its MIT License.
-
-## References
-
-This document was adapted from the open-source contribution guidelines for [Facebook's Draft](https://github.com/facebook/draft-js/blob/a9316a723f9e918afde44dea68b5f9f39b7d9b00/CONTRIBUTING.md)
+By contributing, you agree that your contributions are licensed under the [MIT License](LICENSE).

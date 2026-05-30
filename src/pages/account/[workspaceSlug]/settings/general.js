@@ -15,7 +15,7 @@ import { AccountLayout } from '@/layouts/index';
 import api from '@/lib/common/api';
 import { useWorkspace } from '@/providers/workspace';
 import { getWorkspace, isWorkspaceOwner } from '@/prisma/services/workspace';
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 
 const General = ({ isTeamOwner, workspace }) => {
   const router = useRouter();
@@ -87,15 +87,15 @@ const General = ({ isTeamOwner, workspace }) => {
     <AccountLayout>
       <Meta title={`Nextacular - ${workspace.name} | Settings`} />
       <Content.Title
-        title={t("settings.workspace.information")}
-        subtitle={t("settings.general.workspace.description")}
+        title={t('settings.workspace.information')}
+        subtitle={t('settings.general.workspace.description')}
       />
       <Content.Divider />
       <Content.Container>
         <Card>
           <Card.Body
-            title={t("workspace.action.name.label")}
-            subtitle={t("settings.workspace.name.description")}
+            title={t('workspace.action.name.label')}
+            subtitle={t('settings.workspace.name.description')}
           >
             <input
               className="px-3 py-2 border rounded md:w-1/2"
@@ -120,8 +120,8 @@ const General = ({ isTeamOwner, workspace }) => {
         </Card>
         <Card>
           <Card.Body
-            title={t("settings.workspace.slug")}
-            subtitle={t("setting.workspace.slug.description")}
+            title={t('settings.workspace.slug')}
+            subtitle={t('setting.workspace.slug.description')}
           >
             <div className="flex items-center space-x-3">
               <input
@@ -137,24 +137,22 @@ const General = ({ isTeamOwner, workspace }) => {
             </div>
           </Card.Body>
           <Card.Footer>
-            <small>
-              {t("settings.workspace.slug.validation.message")}
-            </small>
+            <small>{t('settings.workspace.slug.validation.message')}</small>
             {isTeamOwner && (
               <Button
                 className="text-white bg-blue-600 hover:bg-blue-500"
                 disabled={!validSlug || isSubmitting}
                 onClick={changeSlug}
               >
-                {t("common.label.save")}
+                {t('common.label.save')}
               </Button>
             )}
           </Card.Footer>
         </Card>
         <Card>
           <Card.Body
-            title={t("settings.workspace.slug.validation.message")}
-            subtitle={t("settings.workspace.id.description")}
+            title={t('settings.workspace.slug.validation.message')}
+            subtitle={t('settings.workspace.id.description')}
           >
             <div className="flex items-center justify-between px-3 py-2 space-x-5 font-mono text-sm border rounded md:w-1/2">
               <span className="overflow-x-auto">{workspace.workspaceCode}</span>

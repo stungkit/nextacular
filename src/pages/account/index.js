@@ -10,7 +10,7 @@ import { useInvitations, useWorkspaces } from '@/hooks/data/index';
 import { AccountLayout } from '@/layouts/index';
 import api from '@/lib/common/api';
 import { useWorkspace } from '@/providers/workspace';
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 
 const Welcome = () => {
   const router = useRouter();
@@ -68,7 +68,7 @@ const Welcome = () => {
       <Meta title="Nextacular - Dashboard" />
       <Content.Title
         title={t('workspace.dashboard.header.title')}
-        subtitle={t("workspace.dashboard.header.description")}
+        subtitle={t('workspace.dashboard.header.description')}
       />
       <Content.Divider />
       <Content.Container>
@@ -99,8 +99,8 @@ const Welcome = () => {
       </Content.Container>
       <Content.Divider thick />
       <Content.Title
-        title={t("workspace.dashboard.header.invitations.title")}
-        subtitle={t("workspace.dashboard.header.invitations.description")}
+        title={t('workspace.dashboard.header.invitations.title')}
+        subtitle={t('workspace.dashboard.header.invitations.description')}
       />
       <Content.Divider />
       <Content.Container>
@@ -115,8 +115,9 @@ const Welcome = () => {
               <Card key={index}>
                 <Card.Body
                   title={invitation.workspace.name}
-                  subtitle={`You have been invited by ${invitation.invitedBy.name || invitation.invitedBy.email
-                    }`}
+                  subtitle={`You have been invited by ${
+                    invitation.invitedBy.name || invitation.invitedBy.email
+                  }`}
                 />
                 <Card.Footer>
                   <Button
@@ -138,7 +139,7 @@ const Welcome = () => {
             ))
           ) : (
             <Card.Empty>
-              {t("workspace.team.invitations.empty.message")}
+              {t('workspace.team.invitations.empty.message')}
             </Card.Empty>
           )}
         </div>

@@ -6,7 +6,7 @@ import isEmail from 'validator/lib/isEmail';
 
 import Meta from '@/components/Meta/index';
 import { AuthLayout } from '@/layouts/index';
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 
 const Login = () => {
   const { status } = useSession();
@@ -64,9 +64,7 @@ const Login = () => {
         </div>
         <div className="text-center">
           <h1 className="text-2xl font-bold">{t('login.label')}</h1>
-          <h2 className="text-gray-600">
-            {t('login.message.magiclink')}
-          </h2>
+          <h2 className="text-gray-600">{t('login.message.magiclink')}</h2>
         </div>
         <form className="flex flex-col w-full space-y-3">
           <input
@@ -82,7 +80,7 @@ const Login = () => {
             onClick={signInWithEmail}
           >
             {status === 'loading'
-              ? t("login.message.checking.session")
+              ? t('login.message.checking.session')
               : isSubmitting
                 ? t('login.message.sendinglink')
                 : t('login.message.magiclink')}

@@ -1,5 +1,5 @@
 import Item from './item';
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 
 const Menu = ({ data, isLoading, showMenu }) => {
   const { t } = useTranslation();
