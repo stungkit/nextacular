@@ -10,72 +10,81 @@ By participating, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md
 
 - **Node.js 22** (Active LTS). The version is pinned in `.nvmrc`; if you use `nvm`, run `nvm use` from the repo root.
 - **npm** (bundled with Node). We do not commit a `yarn.lock` or `pnpm-lock.yaml`.
-- **PostgreSQL 14+** running locally, or a hosted database (Supabase, Neon, Railway, etc.).
+- **Docker** with Docker Compose v2 — used to run Postgres and Mailpit locally. You can substitute a hosted Postgres if you prefer (Supabase, Neon, Railway), but Docker is the recommended path.
 
-## Local setup
+## Quick start
 
-```bash
-# 1. Fork and clone
+```sh
+# 1. Fork, clone, and pin Node
 git clone https://github.com/<your-handle>/nextacular.git
 cd nextacular
+nvm use   # or: fnm use / volta install
 
-# 2. Use the pinned Node version
-nvm use   # or: fnm use
-
-# 3. Install dependencies (this also runs `prisma generate`)
+# 2. Install dependencies (also runs `prisma generate`)
 npm install
 
-# 4. Copy the env template and fill in the required values
+# 3. Copy the env template — the defaults match docker-compose.yml
 cp .env.sample .env
 
-# 5. Apply database migrations
+# 4. Start Postgres + Mailpit + Adminer in the background
+npm run db:up
+
+# 5. Apply migrations and seed the demo workspace
 npx prisma migrate deploy
+npm run seed
 
-# 6. (Optional) Seed sample data
-npx prisma db seed
-
-# 7. Start the dev server
+# 6. Run the dev server
 npm run dev
 ```
 
-The app will be available at <http://localhost:3000>.
+The app is now on <http://localhost:3000>. Sign in by entering the seeded admin email (`admin@nextacular.test` by default) — the magic-link email appears in [Mailpit](http://localhost:8025) within seconds.
 
-### Required environment variables
+| Service          | URL                                             |
+| ---------------- | ----------------------------------------------- |
+| App              | <http://localhost:3000>                         |
+| Mailpit          | <http://localhost:8025>                         |
+| Adminer (DB GUI) | <http://localhost:8080> (use server `postgres`) |
+| Prisma Studio    | `npm run db:studio` → <http://localhost:5555>   |
 
-At minimum you need:
+## Environment variables
 
-- `DATABASE_URL` — Postgres connection string
-- `NEXTAUTH_SECRET` — generate with `openssl rand -base64 32`
-- `APP_URL` — usually `http://localhost:3000`
-- `EMAIL_FROM`, `EMAIL_SERVER_USER`, `EMAIL_SERVER_PASSWORD`, `EMAIL_SERVICE` — required for magic-link auth. For local development you can point this at an SMTP test inbox (Mailtrap, MailHog, etc.).
+The minimum-viable `.env` is set up by `cp .env.sample .env` — it just works against `docker compose`. Stripe, Vercel custom domains, and Google Analytics are all opt-in: leave them commented out until you need them.
 
-See `.env.sample` for the full list and where to source each value.
+See [`docs/ENV.md`](docs/ENV.md) for the full list with usage notes and "where to get this value" for every variable.
 
 ## Scripts
 
-| Command                | Purpose                              |
-| ---------------------- | ------------------------------------ |
-| `npm run dev`          | Start the dev server with hot reload |
-| `npm run build`        | Production build                     |
-| `npm run start`        | Run the production build             |
-| `npm run lint`         | Run ESLint                           |
-| `npm run format`       | Run Prettier on the codebase         |
-| `npm run format:check` | Verify formatting without writing    |
+| Command                | Purpose                                                    |
+| ---------------------- | ---------------------------------------------------------- |
+| `npm run dev`          | Start the Next.js dev server with hot reload               |
+| `npm run build`        | Production build                                           |
+| `npm run start`        | Run the production build                                   |
+| `npm run lint`         | Run ESLint                                                 |
+| `npm run format`       | Run Prettier on the codebase                               |
+| `npm run format:check` | Verify formatting without writing                          |
+| `npm run typecheck`    | Run TypeScript in `--noEmit` mode                          |
+| `npm run db:up`        | Start the Docker stack (Postgres + Mailpit + Adminer)      |
+| `npm run db:down`      | Stop the Docker stack (data is preserved)                  |
+| `npm run db:reset`     | Tear the stack down (volumes too), re-migrate, and re-seed |
+| `npm run db:logs`      | Tail Postgres logs                                         |
+| `npm run db:studio`    | Open Prisma Studio at <http://localhost:5555>              |
+| `npm run seed`         | Run the seed script against the current `DATABASE_URL`     |
 
 ## Project conventions
 
-- All workspace-scoped API routes must verify authorization with `requireWorkspaceOwner` or `requireWorkspaceMember` from `src/lib/server/authorization.js` before mutating or reading workspace data. Session presence alone is **not** sufficient.
-- Error responses use the shape `{ errors: { error: { msg: '...' } } }` for compatibility with the existing client-side toast handling.
-- Server-only code lives under `src/lib/server/`. Anything imported from there must never end up in a client bundle.
-- Prisma services live under `prisma/services/` and are the single layer that talks to the database.
+- **Authorization on workspace-scoped routes.** Every API route that reads or mutates workspace data must verify authorization with `requireWorkspaceOwner`, `requireWorkspaceMember`, or `requireMemberInOwnedWorkspace` from `src/lib/server/authorization.ts` **before** touching the database. Session presence alone (`validateSession`) is not sufficient — see the v1.4.2 security release notes in `CHANGELOG.md`.
+- **Error response shape.** Use `{ errors: { error: { msg: '...' } } }` so existing client-side toast handling continues to work.
+- **Server-only code.** Lives under `src/lib/server/`. Anything imported from there must never end up in a client bundle. Treat the boundary like a hard constraint.
+- **Prisma services.** Live under `prisma/services/`. They are the single layer that talks to the database — routes and pages should never import `@prisma/client` directly.
+- **TypeScript.** `strict: true` and `noUncheckedIndexedAccess: true`. No `any`, no `@ts-ignore` without a comment explaining why.
 
 ## Submitting a pull request
 
 1. Create a branch from `main`. Use a short, descriptive name (`fix/team-role-bypass`, `feat/sso-google`, `chore/upgrade-prisma`).
 2. Make focused changes. One concern per PR is much easier to review than a sprawling change.
-3. Run `npm run lint`, `npm run format:check`, and `npm run build` locally.
+3. Run `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm run build` locally.
 4. Update `CHANGELOG.md` for user-facing changes.
-5. Open a PR against `main` and fill out the template. CI will run lint and build automatically.
+5. Open a PR against `main` and fill out the template. CI will run lint, typecheck, format check, and build automatically.
 6. For security fixes, **do not open a public PR first** — coordinate via the process in [SECURITY.md](SECURITY.md).
 
 ## Reporting bugs

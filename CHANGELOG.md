@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `docker-compose.yml` with Postgres 16, [Mailpit](https://mailpit.axllent.org/) (for capturing magic-link emails locally), and Adminer.
+- New npm scripts: `db:up`, `db:down`, `db:reset`, `db:logs`, `db:studio`, `seed`. Local dev now boots with `npm install && npm run db:up && npx prisma migrate deploy && npm run seed && npm run dev`.
+- Seed script (`prisma/seed.ts`, replacing `prisma/seed.js`) creates a demo workspace with an admin owner and two teammate users (one accepted, one pending invitation) so the dashboard is non-empty on first run.
+- `docs/ENV.md` — full reference for every environment variable: required vs. optional, where to get each value, examples for hosted Postgres and Stripe webhooks.
+- Rewritten `.env.sample` with defaults that match `docker-compose.yml` and inline guidance grouped by feature area.
+- `tsx` devDependency so Prisma can run TypeScript seed and script files directly.
+
+### Changed
+
+- TypeScript-first codebase: `src/`, `prisma/services/`, `src/lib/`, the API routes, components, layouts, pages, and middleware are all `.ts` / `.tsx`. `strict: true` + `noUncheckedIndexedAccess: true`. CI now runs `tsc --noEmit` on every PR.
+- Tooling foundation: Node 22 pinned via `.nvmrc` and `engines`, Prettier + EditorConfig, tightened ESLint (`no-console` as warn, `prefer-const`, `eqeqeq`, `no-var`), GitHub Actions CI (lint + format + typecheck + build with a Postgres service container), CodeQL workflow on a weekly schedule, `SECURITY.md`, PR template.
+- `CONTRIBUTING.md` rewritten with the docker-compose workflow and a scripts reference table.
+
 ## [1.4.2] - 2026-05-30
 
 ### Security

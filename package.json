@@ -13,10 +13,16 @@
     "format": "prettier --write . --ignore-path .prettierignore",
     "format:check": "prettier --check . --ignore-path .prettierignore",
     "typecheck": "tsc --noEmit",
+    "db:up": "docker compose up -d postgres mailpit adminer",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d postgres && npx prisma migrate deploy && npx prisma db seed",
+    "db:logs": "docker compose logs -f postgres",
+    "db:studio": "prisma studio",
+    "seed": "prisma db seed",
     "postinstall": "prisma generate"
   },
   "prisma": {
-    "seed": "node prisma/seed.js"
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.7",
@@ -59,6 +65,7 @@
     "prettier": "^3.8.3",
     "prisma": "^4.8.0",
     "tailwindcss": "^3.0.11",
+    "tsx": "^4.22.3",
     "typescript": "~5.6.0"
   }
 }
