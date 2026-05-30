@@ -72,11 +72,26 @@ See [`docs/ENV.md`](docs/ENV.md) for the full list with usage notes and "where t
 
 ## Project conventions
 
+The short list — the **rules we won't merge a PR that violates**:
+
 - **Authorization on workspace-scoped routes.** Every API route that reads or mutates workspace data must verify authorization with `requireWorkspaceOwner`, `requireWorkspaceMember`, or `requireMemberInOwnedWorkspace` from `src/lib/server/authorization.ts` **before** touching the database. Session presence alone (`validateSession`) is not sufficient — see the v1.4.2 security release notes in `CHANGELOG.md`.
-- **Error response shape.** Use `{ errors: { error: { msg: '...' } } }` so existing client-side toast handling continues to work.
+- **Error response shape.** Use `{ errors: { <field>: { msg: '...' } } }` so existing client-side toast handling continues to work.
 - **Server-only code.** Lives under `src/lib/server/`. Anything imported from there must never end up in a client bundle. Treat the boundary like a hard constraint.
 - **Prisma services.** Live under `prisma/services/`. They are the single layer that talks to the database — routes and pages should never import `@prisma/client` directly.
 - **TypeScript.** `strict: true` and `noUncheckedIndexedAccess: true`. No `any`, no `@ts-ignore` without a comment explaining why.
+
+The full list with rationale and examples lives in [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md).
+
+## Architecture and recipes
+
+If this is your first PR, read these in order:
+
+1. [`CLAUDE.md`](CLAUDE.md) — the operating guide for AI assistants and humans. The fastest way to get oriented.
+2. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — multi-tenancy, auth, billing, the data model.
+3. [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) — the rules above plus the rest.
+4. [`docs/RECIPES.md`](docs/RECIPES.md) — copy-paste guides for "add an API route", "add a page", "add a Prisma model", etc.
+
+For AI assistants: this repo also ships [`AGENTS.md`](AGENTS.md) (vendor-neutral pointer) and [`.cursorrules`](.cursorrules) (condensed for Cursor).
 
 ## Submitting a pull request
 

@@ -13,14 +13,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New npm scripts: `db:up`, `db:down`, `db:reset`, `db:logs`, `db:studio`, `seed`. Local dev now boots with `npm install && npm run db:up && npx prisma migrate deploy && npm run seed && npm run dev`.
 - Seed script (`prisma/seed.ts`, replacing `prisma/seed.js`) creates a demo workspace with an admin owner and two teammate users (one accepted, one pending invitation) so the dashboard is non-empty on first run.
 - `docs/ENV.md` — full reference for every environment variable: required vs. optional, where to get each value, examples for hosted Postgres and Stripe webhooks.
+- `docs/ARCHITECTURE.md` — multi-tenancy (subdomain + custom domain routing), authentication, workspaces / members / teams, billing and Stripe webhook flow, and the data model.
+- `docs/CONVENTIONS.md` — the full coding conventions enforced in code review: TypeScript, file organization, API route shape, error envelope, validation, authorization, page structure, naming, commit style.
+- `docs/RECIPES.md` — copy-paste guides for "add an API route", "add a workspace-scoped page", "add a data hook", "add a Prisma model", "add a billing-gated feature", "add a landing section", "add an environment variable", "send an email".
+- `CLAUDE.md` at repo root — operating guide for Claude Code, Cursor, GitHub Copilot, and any AI assistant. Mirrored by a short `AGENTS.md` pointer and a condensed `.cursorrules` for Cursor IDE.
 - Rewritten `.env.sample` with defaults that match `docker-compose.yml` and inline guidance grouped by feature area.
 - `tsx` devDependency so Prisma can run TypeScript seed and script files directly.
+- Server-side validation via Zod (`src/lib/server/validate.ts` → `parseBody`); schemas live in `src/config/api-validation/`.
+- `src/lib/client/clipboard.ts` (native Clipboard API wrapper) and `src/lib/server/raw-body.ts` (Stripe webhook raw body reader).
 
 ### Changed
 
 - TypeScript-first codebase: `src/`, `prisma/services/`, `src/lib/`, the API routes, components, layouts, pages, and middleware are all `.ts` / `.tsx`. `strict: true` + `noUncheckedIndexedAccess: true`. CI now runs `tsc --noEmit` on every PR.
 - Tooling foundation: Node 22 pinned via `.nvmrc` and `engines`, Prettier + EditorConfig, tightened ESLint (`no-console` as warn, `prefer-const`, `eqeqeq`, `no-var`), GitHub Actions CI (lint + format + typecheck + build with a Postgres service container), CodeQL workflow on a weekly schedule, `SECURITY.md`, PR template.
-- `CONTRIBUTING.md` rewritten with the docker-compose workflow and a scripts reference table.
+- `CONTRIBUTING.md` rewritten with the docker-compose workflow, a scripts reference table, and pointers to `CLAUDE.md` + the new `docs/` guides.
+- Prisma 4 → 6 (no source changes required; schema avoided every Prisma 5/6 breaking-change vector).
+- Dependencies refreshed within compatible majors: next 13.5.1 → 13.5.11, next-auth 4.24.5 → 4.24.14, react 18.2 → 18.3.1, tailwindcss 3.3 → 3.4, eslint 8.38 → 8.57, and others.
+- `nodemailer` 6 → 7 (required by `next-auth` 4.24's peer; existing `sendMail` API unchanged).
+
+### Removed
+
+- `react-topbar-progress-indicator` → replaced with `nprogress` wired to Router events.
+- `react-ga` (end-of-life with Universal Analytics) → replaced with `gtag.js` injected via `next/script`.
+- `react-copy-to-clipboard` → replaced with the native Clipboard API.
+- `micro` → replaced with a 7-line `readRawBody` helper for the Stripe webhook handler.
+- `express-validator` → replaced with Zod schemas and the `parseBody` helper.
 
 ## [1.4.2] - 2026-05-30
 
