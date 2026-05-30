@@ -1,20 +1,29 @@
-import { useState } from 'react';
+import type { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
-import toast from 'react-hot-toast';
-
-import Button from '@/components/Button/index';
-import Meta from '@/components/Meta/index';
-import Modal from '@/components/Modal/index';
-import Card from '@/components/Card/index';
-import Content from '@/components/Content/index';
-import { AccountLayout } from '@/layouts/index';
-import api from '@/lib/common/api';
-import { useWorkspace } from '@/providers/workspace';
 import { getSession } from 'next-auth/react';
-import { getWorkspace, isWorkspaceCreator } from '@/prisma/services/workspace';
+import { useState, type ChangeEvent } from 'react';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
-const Advanced = ({ isCreator }) => {
+import Button from '@/components/Button/index';
+import Card from '@/components/Card/index';
+import Content from '@/components/Content/index';
+import Meta from '@/components/Meta/index';
+import Modal from '@/components/Modal/index';
+import { AccountLayout } from '@/layouts/index';
+import apiFetch from '@/lib/common/api';
+import { useWorkspace } from '@/providers/workspace';
+import { getWorkspace, isWorkspaceCreator } from '@/prisma/services/workspace';
+
+type AdvancedProps = {
+  isCreator: boolean;
+};
+
+type MutationResponse = {
+  errors?: Record<string, { msg: string }>;
+};
+
+const Advanced = ({ isCreator }: AdvancedProps) => {
   const { setWorkspace, workspace } = useWorkspace();
   const { t } = useTranslation();
   const router = useRouter();
@@ -23,19 +32,20 @@ const Advanced = ({ isCreator }) => {
   const [verifyWorkspace, setVerifyWorkspace] = useState('');
   const verifiedWorkspace = verifyWorkspace === workspace?.slug;
 
-  const handleVerifyWorkspaceChange = (event) =>
+  const handleVerifyWorkspaceChange = (event: ChangeEvent<HTMLInputElement>) =>
     setVerifyWorkspace(event.target.value);
 
   const deleteWorkspace = () => {
+    if (!workspace) return;
     setSubmittingState(true);
-    api(`/api/workspace/${workspace.slug}`, {
+    apiFetch<MutationResponse>(`/api/workspace/${workspace.slug}`, {
       method: 'DELETE',
     }).then((response) => {
       setSubmittingState(false);
 
       if (response.errors) {
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
       } else {
         toggleModal();
@@ -66,7 +76,7 @@ const Advanced = ({ isCreator }) => {
             subtitle={t('settings.workspace.delete.message')}
           />
           <Card.Footer>
-            <small className={[isCreator && 'text-red-600']}>
+            <small className={isCreator ? 'text-red-600' : undefined}>
               {isCreator
                 ? t('setting.workspace.delete.warning.message')
                 : t('settings.workspace.delete.contact.message')}
@@ -105,7 +115,7 @@ const Advanced = ({ isCreator }) => {
                 className="px-3 py-2 border rounded"
                 disabled={isSubmitting}
                 onChange={handleVerifyWorkspaceChange}
-                type="email"
+                type="text"
                 value={verifyWorkspace}
               />
             </div>
@@ -125,17 +135,28 @@ const Advanced = ({ isCreator }) => {
   );
 };
 
-export const getServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps<AdvancedProps> = async (
+  context
+) => {
   const session = await getSession(context);
   let isCreator = false;
 
-  if (session) {
-    const workspace = await getWorkspace(
-      session.user.userId,
-      session.user.email,
-      context.params.workspaceSlug
-    );
-    isCreator = isWorkspaceCreator(session.user.userId, workspace.creatorId);
+  if (session?.user) {
+    const workspaceSlug =
+      typeof context.params?.workspaceSlug === 'string'
+        ? context.params.workspaceSlug
+        : '';
+    const workspace = workspaceSlug
+      ? await getWorkspace(
+          session.user.userId,
+          session.user.email,
+          workspaceSlug
+        )
+      : null;
+
+    if (workspace) {
+      isCreator = isWorkspaceCreator(session.user.userId, workspace.creatorId);
+    }
   }
 
   return { props: { isCreator } };

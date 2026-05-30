@@ -1,33 +1,52 @@
-import { useState } from 'react';
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
-import { getSession } from 'next-auth/react';
+import type { GetServerSideProps } from 'next';
 import Link from 'next/link';
+import { getSession } from 'next-auth/react';
+import { useState, type ChangeEvent, type MouseEvent } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { mutate } from 'swr';
 import isFQDN from 'validator/lib/isFQDN';
 
 import Button from '@/components/Button/index';
-import DomainCard from '@/components/Card/domain';
+import DomainCard, { type DomainInfo } from '@/components/Card/domain';
 import Card from '@/components/Card/index';
 import Content from '@/components/Content/index';
 import Meta from '@/components/Meta/index';
 import { useDomains } from '@/hooks/data';
 import { AccountLayout } from '@/layouts/index';
-import api from '@/lib/common/api';
+import apiFetch from '@/lib/common/api';
 import { getWorkspace, isWorkspaceOwner } from '@/prisma/services/workspace';
-import { useTranslation } from 'react-i18next';
 
-const Domain = ({ isTeamOwner, workspace }) => {
+type WorkspaceForDomain = {
+  slug: string;
+  name: string;
+  host: string;
+  hostname: string;
+};
+
+type DomainPageProps = {
+  isTeamOwner: boolean;
+  workspace: WorkspaceForDomain | null;
+};
+
+type MutationResponse = {
+  errors?: Record<string, { msg: string }>;
+};
+
+const DomainPage = ({ isTeamOwner, workspace }: DomainPageProps) => {
   const { t } = useTranslation();
-  const { data, isLoading } = useDomains(workspace.slug);
+  const { data, isLoading } = useDomains(workspace?.slug ?? '');
   const [domain, setDomain] = useState('');
   const [isSubmitting, setSubmittingState] = useState(false);
   const validDomainName = isFQDN(domain);
 
-  const addDomain = (event) => {
+  if (!workspace) return null;
+
+  const addDomain = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setSubmittingState(true);
-    api(`/api/workspace/${workspace.slug}/domain`, {
+    apiFetch<MutationResponse>(`/api/workspace/${workspace.slug}/domain`, {
       body: { domainName: domain },
       method: 'POST',
     }).then((response) => {
@@ -35,7 +54,7 @@ const Domain = ({ isTeamOwner, workspace }) => {
 
       if (response.errors) {
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
       } else {
         setDomain('');
@@ -44,25 +63,26 @@ const Domain = ({ isTeamOwner, workspace }) => {
     });
   };
 
-  const handleDomainChange = (event) => setDomain(event.target.value);
+  const handleDomainChange = (event: ChangeEvent<HTMLInputElement>) =>
+    setDomain(event.target.value);
 
-  const refresh = (domain, verified) => {
+  const refresh = (domainName: string, verified: boolean | null) => {
     setSubmittingState(true);
 
     if (verified) {
-      mutate(`/api/workspace/domain/check?domain=${domain}`).then(() =>
+      mutate(`/api/workspace/domain/check?domain=${domainName}`).then(() =>
         setSubmittingState(false)
       );
     } else {
-      api(`/api/workspace/${workspace.slug}/domain`, {
-        body: { domainName: domain },
+      apiFetch<MutationResponse>(`/api/workspace/${workspace.slug}/domain`, {
+        body: { domainName },
         method: 'PUT',
       }).then((response) => {
         setSubmittingState(false);
 
         if (response.errors) {
           Object.keys(response.errors).forEach((error) =>
-            toast.error(response.errors[error].msg)
+            toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
           );
         } else {
           toast.success('Domain successfully verified!');
@@ -70,23 +90,25 @@ const Domain = ({ isTeamOwner, workspace }) => {
       });
     }
 
-    return verified;
+    return Boolean(verified);
   };
 
-  const remove = (domain) => {
-    api(`/api/workspace/${workspace.slug}/domain`, {
-      body: { domainName: domain },
+  const remove = (domainName: string) => {
+    apiFetch<MutationResponse>(`/api/workspace/${workspace.slug}/domain`, {
+      body: { domainName },
       method: 'DELETE',
     }).then((response) => {
       if (response.errors) {
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
       } else {
         toast.success('Domain successfully deleted from workspace!');
       }
     });
   };
+
+  const domains = data?.domains ?? [];
 
   return (
     <AccountLayout>
@@ -152,14 +174,14 @@ const Domain = ({ isTeamOwner, workspace }) => {
             </Card>
             {isLoading ? (
               <DomainCard isLoading />
-            ) : data?.domains.length > 0 ? (
-              data.domains.map((domain, index) => (
+            ) : domains.length > 0 ? (
+              domains.map((entry, index) => (
                 <DomainCard
                   key={index}
                   apex={process.env.NEXT_PUBLIC_VERCEL_IP_ADDRESS}
                   cname={workspace.hostname}
                   isLoading={isSubmitting}
-                  domain={domain}
+                  domain={entry as DomainInfo}
                   refresh={refresh}
                   remove={remove}
                 />
@@ -176,32 +198,41 @@ const Domain = ({ isTeamOwner, workspace }) => {
   );
 };
 
-export const getServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps<DomainPageProps> = async (
+  context
+) => {
   const session = await getSession(context);
   let isTeamOwner = false;
-  let workspace = null;
+  let workspace: WorkspaceForDomain | null = null;
 
-  if (session) {
-    workspace = await getWorkspace(
-      session.user.userId,
-      session.user.email,
-      context.params.workspaceSlug
-    );
+  if (session?.user) {
+    const workspaceSlug =
+      typeof context.params?.workspaceSlug === 'string'
+        ? context.params.workspaceSlug
+        : '';
+    const dbWorkspace = workspaceSlug
+      ? await getWorkspace(
+          session.user.userId,
+          session.user.email,
+          workspaceSlug
+        )
+      : null;
 
-    if (workspace) {
+    if (dbWorkspace && process.env.APP_URL) {
       const { host } = new URL(process.env.APP_URL);
-      isTeamOwner = isWorkspaceOwner(session.user.email, workspace);
-      workspace.host = host;
-      workspace.hostname = `${workspace.slug}.${host}`;
+      isTeamOwner = isWorkspaceOwner(session.user.email, dbWorkspace);
+      workspace = {
+        slug: workspaceSlug,
+        name: dbWorkspace.name,
+        host,
+        hostname: `${workspaceSlug}.${host}`,
+      };
     }
   }
 
   return {
-    props: {
-      isTeamOwner,
-      workspace,
-    },
+    props: { isTeamOwner, workspace },
   };
 };
 
-export default Domain;
+export default DomainPage;

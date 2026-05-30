@@ -1,21 +1,36 @@
-import { useState } from 'react';
 import { DocumentDuplicateIcon } from '@heroicons/react/24/outline';
+import type { GetServerSideProps } from 'next';
 import { getSession, signOut } from 'next-auth/react';
+import { useState, type ChangeEvent, type MouseEvent } from 'react';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import isEmail from 'validator/lib/isEmail';
 
 import Button from '@/components/Button/index';
 import Card from '@/components/Card/index';
 import Content from '@/components/Content/index';
-import Meta from '@/components/Meta';
+import Meta from '@/components/Meta/index';
 import Modal from '@/components/Modal/index';
 import { AccountLayout } from '@/layouts/index';
-import api from '@/lib/common/api';
+import apiFetch from '@/lib/common/api';
 import { getUser } from '@/prisma/services/user';
-import { useTranslation } from 'react-i18next';
 
-const Settings = ({ user }) => {
+type SettingsUser = {
+  email: string;
+  name: string;
+  userCode: string;
+};
+
+type SettingsProps = {
+  user: SettingsUser;
+};
+
+type MutationResponse = {
+  errors?: Record<string, { msg: string }>;
+};
+
+const Settings = ({ user }: SettingsProps) => {
   const [email, setEmail] = useState(user.email || '');
   const [isSubmitting, setSubmittingState] = useState(false);
   const [name, setName] = useState(user.name || '');
@@ -29,10 +44,10 @@ const Settings = ({ user }) => {
 
   const copyToClipboard = () => toast.success('Copied to clipboard!');
 
-  const changeName = (event) => {
+  const changeName = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setSubmittingState(true);
-    api('/api/user/name', {
+    apiFetch<MutationResponse>('/api/user/name', {
       body: { name },
       method: 'PUT',
     }).then((response) => {
@@ -40,7 +55,7 @@ const Settings = ({ user }) => {
 
       if (response.errors) {
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
       } else {
         toast.success('Name successfully updated!');
@@ -48,36 +63,36 @@ const Settings = ({ user }) => {
     });
   };
 
-  const changeEmail = (event) => {
+  const changeEmail = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     const result = confirm(
       'Are you sure you want to update your email address?'
     );
 
-    if (result) {
-      setSubmittingState(true);
-      api('/api/user/email', {
-        body: { email },
-        method: 'PUT',
-      }).then((response) => {
-        setSubmittingState(false);
+    if (!result) return;
 
-        if (response.errors) {
-          Object.keys(response.errors).forEach((error) =>
-            toast.error(response.errors[error].msg)
-          );
-        } else {
-          toast.success('Email successfully updated and signing you out!');
-          setTimeout(() => signOut({ callbackUrl: '/auth/login' }), 2000);
-        }
-      });
-    }
+    setSubmittingState(true);
+    apiFetch<MutationResponse>('/api/user/email', {
+      body: { email },
+      method: 'PUT',
+    }).then((response) => {
+      setSubmittingState(false);
+
+      if (response.errors) {
+        Object.keys(response.errors).forEach((error) =>
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
+        );
+      } else {
+        toast.success('Email successfully updated and signing you out!');
+        setTimeout(() => signOut({ callbackUrl: '/auth/login' }), 2000);
+      }
+    });
   };
 
-  const deactivateAccount = (event) => {
+  const deactivateAccount = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setSubmittingState(true);
-    api('/api/user', {
+    apiFetch<MutationResponse>('/api/user', {
       method: 'DELETE',
     }).then((response) => {
       setSubmittingState(false);
@@ -85,7 +100,7 @@ const Settings = ({ user }) => {
 
       if (response.errors) {
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
       } else {
         toast.success('Account has been deactivated!');
@@ -93,11 +108,14 @@ const Settings = ({ user }) => {
     });
   };
 
-  const handleEmailChange = (event) => setEmail(event.target.value);
+  const handleEmailChange = (event: ChangeEvent<HTMLInputElement>) =>
+    setEmail(event.target.value);
 
-  const handleNameChange = (event) => setName(event.target.value);
+  const handleNameChange = (event: ChangeEvent<HTMLInputElement>) =>
+    setName(event.target.value);
 
-  const handleVerifyEmailChange = (event) => setVerifyEmail(event.target.value);
+  const handleVerifyEmailChange = (event: ChangeEvent<HTMLInputElement>) =>
+    setVerifyEmail(event.target.value);
 
   const toggleModal = () => {
     setVerifyEmail('');
@@ -229,15 +247,24 @@ const Settings = ({ user }) => {
   );
 };
 
-export const getServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps<SettingsProps> = async (
+  context
+) => {
   const session = await getSession(context);
-  const { email, name, userCode } = await getUser(session.user?.userId);
+  const userId = session?.user?.userId;
+
+  if (!userId) {
+    return { redirect: { destination: '/auth/login', permanent: false } };
+  }
+
+  const user = await getUser(userId);
+
   return {
     props: {
       user: {
-        email,
-        name,
-        userCode,
+        email: user?.email ?? '',
+        name: user?.name ?? '',
+        userCode: user?.userCode ?? '',
       },
     },
   };

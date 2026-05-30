@@ -1,11 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-type NextFn = (result?: unknown) => void;
+type NextFn = (_result?: unknown) => void;
 
 type Middleware = (
-  req: NextApiRequest,
-  res: NextApiResponse,
-  next: NextFn
+  _req: NextApiRequest,
+  _res: NextApiResponse,
+  _next: NextFn
 ) => unknown | Promise<unknown>;
 
 const initMiddleware = (middleware: Middleware) => {

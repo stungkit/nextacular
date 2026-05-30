@@ -3,7 +3,7 @@ import { getServerSession, type Session } from 'next-auth';
 
 import { authOptions } from '@/lib/server/auth';
 
-type NextFn = (result?: unknown) => void;
+type NextFn = (_result?: unknown) => void;
 
 const validateMiddleware = () => {
   return async (req: NextApiRequest, res: NextApiResponse, next: NextFn) => {

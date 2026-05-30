@@ -1,8 +1,10 @@
-import { useState } from 'react';
 import formatDistance from 'date-fns/formatDistance';
-import Link from 'next/link';
+import type { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
+import Link from 'next/link';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
+import type Stripe from 'stripe';
 
 import Button from '@/components/Button/index';
 import Card from '@/components/Card/index';
@@ -10,28 +12,40 @@ import Content from '@/components/Content/index';
 import Meta from '@/components/Meta/index';
 import Modal from '@/components/Modal/index';
 import { AccountLayout } from '@/layouts/index';
-import api from '@/lib/common/api';
 import { redirectToCheckout } from '@/lib/client/stripe';
+import apiFetch from '@/lib/common/api';
 import { getInvoices, getProducts } from '@/lib/server/stripe';
 import { getPayment } from '@/prisma/services/customer';
 
-const Billing = ({ invoices, products }) => {
+type ProductWithPrice = Stripe.Product & { prices?: Stripe.Price };
+
+type BillingProps = {
+  invoices: Stripe.Invoice[];
+  products: ProductWithPrice[];
+};
+
+type SubscribeResponse = {
+  errors?: Record<string, { msg: string }>;
+  data?: { sessionId: string };
+};
+
+const Billing = ({ invoices, products }: BillingProps) => {
   const [isSubmitting, setSubmittingState] = useState(false);
   const [showModal, setModalVisibility] = useState(false);
 
-  const subscribe = (priceId) => {
+  const subscribe = (priceId: string) => {
     setSubmittingState(true);
-    api(`/api/payments/subscription/${priceId}`, {
+    apiFetch<SubscribeResponse>(`/api/payments/subscription/${priceId}`, {
       method: 'POST',
     }).then((response) => {
       setSubmittingState(false);
 
       if (response.errors) {
         Object.keys(response.errors).forEach((error) =>
-          toast.error(response.errors[error].msg)
+          toast.error(response.errors?.[error]?.msg ?? 'Unknown error')
         );
-      } else {
-        (async () => redirectToCheckout(response.data.sessionId))();
+      } else if (response.data?.sessionId) {
+        redirectToCheckout(response.data.sessionId);
       }
     });
   };
@@ -82,14 +96,19 @@ const Billing = ({ invoices, products }) => {
               <Card key={index}>
                 <Card.Body title={product.name} subtitle={product.description}>
                   <h3 className="text-4xl font-bold">
-                    ${Number(product.prices.unit_amount / 100).toFixed(2)}
+                    $
+                    {(((product.prices?.unit_amount ?? 0) / 100) | 0).toFixed(
+                      2
+                    )}
                   </h3>
                 </Card.Body>
                 <Card.Footer>
                   <Button
                     className="w-full text-white bg-blue-600 hover:bg-blue-500"
-                    disabled={isSubmitting}
-                    onClick={() => subscribe(product.prices.id)}
+                    disabled={isSubmitting || !product.prices?.id}
+                    onClick={() =>
+                      product.prices?.id && subscribe(product.prices.id)
+                    }
                   >
                     {isSubmitting
                       ? 'Redirecting...'
@@ -123,7 +142,7 @@ const Billing = ({ invoices, products }) => {
                 <tr key={index} className="text-sm hover:bg-gray-100">
                   <td className="px-3 py-5">
                     <Link
-                      href={invoice.hosted_invoice_url}
+                      href={invoice.hosted_invoice_url ?? '#'}
                       className="text-blue-600"
                       target="_blank"
                     >
@@ -134,15 +153,13 @@ const Billing = ({ invoices, products }) => {
                     {formatDistance(
                       new Date(invoice.created * 1000),
                       new Date(),
-                      {
-                        addSuffix: true,
-                      }
+                      { addSuffix: true }
                     )}
                   </td>
                   <td className="py-5">{invoice.status}</td>
                   <td className="py-5">
                     <Link
-                      href={invoice.hosted_invoice_url}
+                      href={invoice.hosted_invoice_url ?? '#'}
                       className="text-blue-600"
                       target="_blank"
                     >
@@ -164,17 +181,21 @@ const Billing = ({ invoices, products }) => {
   );
 };
 
-export const getServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps<BillingProps> = async (
+  context
+) => {
   const session = await getSession(context);
-  const customerPayment = await getPayment(session.user?.email);
+  const customerPayment = session?.user?.email
+    ? await getPayment(session.user.email)
+    : null;
   const [invoices, products] = await Promise.all([
-    getInvoices(customerPayment?.paymentId),
+    customerPayment?.paymentId ? getInvoices(customerPayment.paymentId) : [],
     getProducts(),
   ]);
   return {
     props: {
-      invoices,
-      products,
+      invoices: (invoices ?? []) as Stripe.Invoice[],
+      products: (products ?? []) as ProductWithPrice[],
     },
   };
 };

@@ -19,8 +19,8 @@ type DomainCardProps = {
   cname?: string;
   domain?: DomainInfo;
   isLoading?: boolean;
-  refresh?: (name: string, isVerified: boolean | null) => boolean | void;
-  remove?: (name: string) => void;
+  refresh?: (_name: string, _isVerified: boolean | null) => boolean | void;
+  remove?: (_name: string) => void;
 };
 
 const DomainCard = ({
