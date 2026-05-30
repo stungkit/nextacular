@@ -1,5 +1,6 @@
 import { validateAddDomain, validateSession } from '@/config/api-validation';
 import api from '@/lib/common/api';
+import { requireWorkspaceOwner } from '@/lib/server/authorization';
 import {
   createDomain,
   deleteDomain,
@@ -8,12 +9,21 @@ import {
 
 const handler = async (req, res) => {
   const { method } = req;
+  const teamId = process.env.VERCEL_TEAM_ID;
 
   if (method === 'POST') {
     const session = await validateSession(req, res);
     await validateAddDomain(req, res);
+    const workspace = await requireWorkspaceOwner(
+      req,
+      res,
+      session,
+      req.query.workspaceSlug
+    );
+
+    if (!workspace) return;
+
     const { domainName } = req.body;
-    const teamId = process.env.VERCEL_TEAM_ID;
     const response = await api(
       `${process.env.VERCEL_API_URL}/v9/projects/${
         process.env.VERCEL_PROJECT_ID
@@ -46,8 +56,16 @@ const handler = async (req, res) => {
     }
   } else if (method === 'PUT') {
     const session = await validateSession(req, res);
+    const workspace = await requireWorkspaceOwner(
+      req,
+      res,
+      session,
+      req.query.workspaceSlug
+    );
+
+    if (!workspace) return;
+
     const { domainName } = req.body;
-    const teamId = process.env.VERCEL_TEAM_ID;
     const response = await api(
       `${process.env.VERCEL_API_URL}/v9/projects/${
         process.env.VERCEL_PROJECT_ID
@@ -76,8 +94,16 @@ const handler = async (req, res) => {
     }
   } else if (method === 'DELETE') {
     const session = await validateSession(req, res);
+    const workspace = await requireWorkspaceOwner(
+      req,
+      res,
+      session,
+      req.query.workspaceSlug
+    );
+
+    if (!workspace) return;
+
     const { domainName } = req.body;
-    const teamId = process.env.VERCEL_TEAM_ID;
     await api(
       `${process.env.VERCEL_API_URL}/v8/projects/${
         process.env.VERCEL_PROJECT_ID
